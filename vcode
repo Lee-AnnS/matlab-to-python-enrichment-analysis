@@ -1,0 +1,34 @@
+#plt intsall pandas matplotlib seaborn openpyxl as plt VennDiagram
+
+# Set working directory
+# chdir(f':'C:\use\thobeka\Documents\MATLAB\TB3 Pancreatic cancer Analysis\AssignmentFiles')
+
+# Define gene regulation and tumor groups
+reg_groups = ['Up Genes', 'Down Genes']
+tumor_groups = ['High', 'Low']
+
+# Loop through each tumor group
+for tumor in tumor_groups:
+    print(f'\n Running the analysis for {tumor} Tumors \n')
+    
+    # Nested loop for each regulation group
+    for reg in reg_groups:
+        sheet_name_tbx2 = f'{reg} {tumor} TBX2'
+        sheet_name_tbx3 = f'{reg} {tumor} TBX3'
+        
+        # Read differentially expressed genes from Excel file
+        tbx2_data = pd.read_excel('data.xlsx', sheet_name=sheet_name_tbx2)
+        tbx3_data = pd.read_excel('data.xlsx', sheet_name=sheet_name_tbx3)
+        
+        # Display first few rows
+        print(f'TBX2 Data ({sheet_name_tbx2}):\n', tbx2_data.head())
+        print(f'TBX3 Data ({sheet_name_tbx3}):\n', tbx3_data.head())
+        
+        # Generate Venn diagram of regulated genes (Placeholder, needs venn package)
+        #data
+        plt.figure(figsize=(6, 6))
+        sns.histplot(tbx2_data['GeneExpression'], color='blue', label='TBX2', kde=True)
+        sns.histplot(tbx3_data['GeneExpression'], color='red', label='TBX3', kde=True)
+        plt.legend()
+        plt.title(f'Gene Expression Distribution: {reg} {tumor}')
+        plt.show()

@@ -1,0 +1,144 @@
+
+%% Analysis of TBX2 and TBX3 in Pancreatic Cancer
+
+% **Background:**  
+% TBX2 and TBX3 are transcription factors that play crucial roles in cancer progression, 
+% including pancreatic cancer. These genes regulate cell cycle pathways, and their 
+% dysregulation can lead to tumor development. In this assignment, we analyze differentially 
+% expressed genes associated with TBX2 and TBX3 in pancreatic cancer and perform enrichment 
+% analysis using Enrichr.
+
+% **Objective:**  
+% - Load and analyze differentially expressed genes from an Excel file.
+% - Perform enrichment analysis using Enrichr.
+% - Visualize gene overlaps using Venn diagrams.
+% - Create networks of enriched pathways.
+% - Convert this MATLAB script to Python.
+
+clc; clear; close all;
+
+% **Step 1: Load the Data**
+% The data is stored in an Excel file containing differentially expressed genes between 
+% tumor vs. normal pancreatic samples.
+
+cd('/Users/sinkala/Documents/MATLAB/TBX3 Pancreatic Cancer Analysis')
+
+%% **Venn Diagram of Regulated Genes**
+% We analyze the overlap between TBX2 and TBX3 differentially expressed genes in pancreatic 
+% cancer. Venn diagrams help visualize the shared and unique genes.
+
+regGroups = {'Up Genes ', 'Down Genes '};
+tumourGroups = ["High", "Low"];
+
+for kk = 1:length(tumourGroups)
+    fprintf('\n Running the analysis for %s Tumors \n', tumourGroups{kk})
+
+    for ii = 1:length(regGroups)
+        % Load differentially expressed genes
+        curTBX2 = readtable('Diffentially Expressed Genes Tumour vs Normal.xlsx', ...
+            'Sheet', [regGroups{ii}, tumourGroups{kk}, ' TBX2']);
+        curTBX3 = readtable('Diffentially Expressed Genes Tumour vs Normal.xlsx', ...
+            'Sheet', [regGroups{ii}, tumourGroups{kk}, ' TBX3']);
+
+        % Identify common genes
+        commonGenes = intersect(curTBX2.HugoSymbol, curTBX3.HugoSymbol);
+
+        % Plot Venn diagram
+        figure();
+        venn([200, 200], 75, 'EdgeColor', 'black')
+        hold on
+
+        % Add text to the figure
+        myNumText(1) = height(curTBX2) - length(commonGenes);
+        myNumText(2) = length(commonGenes);
+        myNumText(3) = height(curTBX3) - length(commonGenes);
+
+        textPos = [0.25, 0.47, 0.70];
+        for jj = 1:length(textPos)
+            text(textPos(jj), 0.5, num2str(myNumText(jj)), ...
+                'Units', 'normalized', 'FontWeight', 'bold', ...
+                'FontSize', 16, 'HorizontalAlignment', 'center')
+        end
+
+        text(0.5, 0.98, [regGroups{ii}], 'Units', 'normalized', ...
+            'FontWeight', 'bold', 'FontSize', 14, 'HorizontalAlignment', 'center')
+
+        textPos = [0.33, 0.66];
+        myGroups = {'TBX2', 'TBX3'};
+        for jj = 1:length(textPos)
+            text(textPos(jj), 0.02, [tumourGroups{kk}, ' ', myGroups{jj}], ...
+                'Units', 'normalized', 'FontWeight', 'normal', ...
+                'FontSize', 14, 'HorizontalAlignment', 'center')
+        end
+
+        hold off     
+    end 
+end
+
+%% **Gene Set Enrichment Analysis Using Enrichr**
+% Enrichr is an online tool used to perform gene set enrichment analysis. We analyze 
+% significantly differentially expressed genes to identify enriched pathways.
+
+enrichrVars = {'GO_Molecular_Function_2021_table.txt', 'Reactome_2016_table.txt', ...
+    'MSigDB_Hallmark_2020_table.txt', 'GO_Biological_Process_2021_table.txt'};
+plotNames = {'GO Molecular Function', 'Reactome', 'MSigDB Hallmark', 'GO Biological Process'};
+
+for ii = 1:length(enrichrVars)
+    fprintf('\nRunning analysis for %s Enrichments\n', plotNames{ii})
+
+    enrichTBX2 = readtable(['High TBX2 ', enrichrVars{ii}], 'Format', 'auto'); 
+    enrichTBX3 = readtable(['High TBX3 ', enrichrVars{ii}], 'Format', 'auto');
+
+    % Clean enriched term names
+    enrichTBX2.Term = strtrim(regexprep(enrichTBX2.Term, ...
+        {'\(+\w*', '\:+\w*', '\)', '\R-HSA-+\w*', 'Homo sapiens', '\w* raw'}, ''));
+    enrichTBX3.Term = strtrim(regexprep(enrichTBX3.Term, ...
+        {'\(+\w*', '\:+\w*', '\)', '\R-HSA-+\w*', 'Homo sapiens', '\w* raw'}, ''));
+
+    % Visualize the enrichment results
+    groupColors = [0.85, 0.33, 0.10; 0.47, 0.67, 0.19];
+    enrichr_data_plotter(enrichTBX2, enrichTBX3, plotNames{ii}, groupColors, ...
+        {'High TBX2', 'High TBX3'});
+
+    % Save enrichment results
+    writetable(enrichTBX2, 'Enrichment Results.xlsx', 'Sheet', [plotNames{ii}, '-TBX2'])
+    writetable(enrichTBX3, 'Enrichment Results.xlsx', 'Sheet', [plotNames{ii}, '-TBX3'])
+
+    % Filter significant pathways (Adjusted p-value < 0.05)
+    enrichTBX2 = enrichTBX2(enrichTBX2.AdjustedP_value < 0.05, :);
+    enrichTBX3 = enrichTBX3(enrichTBX3.AdjustedP_value < 0.05, :);
+
+    % Identify common pathways
+    commonPathways = intersect(enrichTBX2.Term, enrichTBX3.Term);
+
+    % Plot Venn diagram
+    figure();
+    venn([150, 150], 75, 'EdgeColor', 'black');
+    hold on
+
+    myNumText(1) = height(enrichTBX2) - length(commonPathways);
+    myNumText(2) = length(commonPathways);
+    myNumText(3) = height(enrichTBX3) - length(commonPathways);
+
+    textPos = [0.25, 0.47, 0.70];
+    for jj = 1:length(textPos)
+        text(textPos(jj), 0.5, num2str(myNumText(jj)), ...
+            'Units', 'normalized', 'FontWeight', 'bold', ...
+            'FontSize', 16, 'HorizontalAlignment', 'center')
+    end
+
+    text(0.5, 0.98, [plotNames{ii}], 'Units', 'normalized', ...
+        'FontWeight', 'bold', 'FontSize', 14, 'HorizontalAlignment', 'center')
+
+    textPos = [0.33, 0.66];
+    myGroups = {'TBX2', 'TBX3'};
+    for jj = 1:length(textPos)
+        text(textPos(jj), 0.02, ['High ', ' ', myGroups{jj}], ...
+            'Units', 'normalized', 'FontWeight', 'normal', ...
+            'FontSize', 14, 'HorizontalAlignment', 'center')
+    end
+
+    hold off
+end
+
+% **Assignment:** Convert this MATLAB script into Python using Pandas, Matplotlib, and Seaborn.
